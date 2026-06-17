@@ -36,11 +36,19 @@ export class HeroComponent implements AfterViewInit, OnDestroy {
   private readonly clipDuration = 19;
   private readonly contentFadeLeadInClip = 13;
   private readonly scrollTrackViewports = 2;
+  private readonly videoSrc = '/videos/127983-739777069_medium.mp4';
+  private readonly seekThreshold = 0.06;
 
   private videoStartTime = 0;
   private activeClipDuration = 0;
   private contentHideOffset = 0;
   private scrollRaf = 0;
+  private videoObjectUrl: string | null = null;
+  private videoScrubEnabled = false;
+  private isSeeking = false;
+  private pendingTargetTime: number | null = null;
+  private lastAppliedTargetTime = -1;
+
   private onScroll = () => this.scheduleScrollUpdate();
   private onResize = () => {
     this.updateHeroScrollHeight();
@@ -58,7 +66,7 @@ export class HeroComponent implements AfterViewInit, OnDestroy {
     this.updateHeroScrollHeight();
     this.updateContentHideOffset();
     this.hideHeroContent();
-    this.initVideo();
+    void this.initVideo();
     window.addEventListener('scroll', this.onScroll, { passive: true });
     window.addEventListener('resize', this.onResize, { passive: true });
     this.scheduleScrollUpdate();
@@ -74,9 +82,12 @@ export class HeroComponent implements AfterViewInit, OnDestroy {
     if (this.scrollRaf) {
       cancelAnimationFrame(this.scrollRaf);
     }
+    if (this.videoObjectUrl) {
+      URL.revokeObjectURL(this.videoObjectUrl);
+    }
   }
 
-  private initVideo(): void {
+  private async initVideo(): Promise<void> {
     const video = this.heroVideo?.nativeElement;
     if (!video) return;
 
@@ -84,29 +95,128 @@ export class HeroComponent implements AfterViewInit, OnDestroy {
     video.defaultMuted = true;
     video.playsInline = true;
     video.setAttribute('webkit-playsinline', '');
+    video.preload = 'auto';
     video.pause();
 
-    const onReady = () => {
-      const duration = this.getPlayableDuration(video);
-      if (!duration) {
+    try {
+      const response = await fetch(this.videoSrc);
+      if (!response.ok) {
+        throw new Error(`Video fetch failed: ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      this.videoObjectUrl = URL.createObjectURL(blob);
+      video.src = this.videoObjectUrl;
+    } catch {
+      video.src = this.videoSrc;
+    }
+
+    await this.waitForVideoMetadata(video);
+    await this.waitForVideoBuffer(video);
+    await this.warmVideoDecoder(video);
+
+    this.videoScrubEnabled = true;
+    this.videoReady = true;
+    video.currentTime = this.getClipEndTime();
+    this.lastAppliedTargetTime = video.currentTime;
+    this.updateHeroScrollHeight();
+    this.updateVideoFromScroll();
+  }
+
+  private waitForVideoMetadata(video: HTMLVideoElement): Promise<void> {
+    return new Promise((resolve) => {
+      const applyMetadata = () => {
+        const duration = this.getPlayableDuration(video);
+        if (!duration) {
+          return;
+        }
+
+        this.activeClipDuration = Math.min(this.clipDuration, duration);
+        this.videoStartTime = Math.max(0, duration - this.activeClipDuration);
+        resolve();
+      };
+
+      if (video.readyState >= HTMLMediaElement.HAVE_METADATA) {
+        applyMetadata();
         return;
       }
 
-      this.activeClipDuration = Math.min(this.clipDuration, duration);
-      this.videoStartTime = Math.max(0, duration - this.activeClipDuration);
-      this.videoReady = true;
-      video.currentTime = this.getClipEndTime();
-      this.updateHeroScrollHeight();
-      this.updateVideoFromScroll();
-    };
+      video.addEventListener('loadedmetadata', applyMetadata, { once: true });
+      video.load();
+    });
+  }
 
-    video.addEventListener('loadedmetadata', onReady);
-    video.addEventListener('loadeddata', onReady);
-    video.load();
+  private waitForVideoBuffer(video: HTMLVideoElement): Promise<void> {
+    return new Promise((resolve) => {
+      let settled = false;
 
-    if (video.readyState >= 1) {
-      onReady();
+      const finish = () => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        video.removeEventListener('progress', check);
+        resolve();
+      };
+
+      const check = () => {
+        if (this.isClipFullyBuffered(video) || video.readyState >= HTMLMediaElement.HAVE_ENOUGH_DATA) {
+          finish();
+        }
+      };
+
+      check();
+      video.addEventListener('progress', check);
+      video.addEventListener('canplaythrough', finish, { once: true });
+      window.setTimeout(finish, 12000);
+    });
+  }
+
+  private isClipFullyBuffered(video: HTMLVideoElement): boolean {
+    const clipEnd = this.getClipEndTime();
+    if (!clipEnd) {
+      return false;
     }
+
+    for (let i = 0; i < video.buffered.length; i++) {
+      if (video.buffered.start(i) <= this.videoStartTime + 0.05 && video.buffered.end(i) >= clipEnd - 0.05) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private async warmVideoDecoder(video: HTMLVideoElement): Promise<void> {
+    const clipEnd = this.getClipEndTime();
+    const mid = this.videoStartTime + this.activeClipDuration * 0.5;
+    const points = [clipEnd, mid, this.videoStartTime, clipEnd];
+
+    for (const time of points) {
+      await this.seekVideoTo(video, time);
+    }
+  }
+
+  private seekVideoTo(video: HTMLVideoElement, targetTime: number): Promise<void> {
+    return new Promise((resolve) => {
+      if (Math.abs(video.currentTime - targetTime) < this.seekThreshold) {
+        resolve();
+        return;
+      }
+
+      const onSeeked = () => {
+        video.removeEventListener('seeked', onSeeked);
+        resolve();
+      };
+
+      video.addEventListener('seeked', onSeeked);
+
+      if ('fastSeek' in video && typeof video.fastSeek === 'function') {
+        video.fastSeek(targetTime);
+      } else {
+        video.currentTime = targetTime;
+      }
+    });
   }
 
   private getPlayableDuration(video: HTMLVideoElement): number {
@@ -177,11 +287,63 @@ export class HeroComponent implements AfterViewInit, OnDestroy {
     const clipSpan = clipEnd - this.videoStartTime;
     const targetTime = clipEnd - progress * clipSpan;
 
-    if (Math.abs(video.currentTime - targetTime) > 0.04) {
-      video.currentTime = targetTime;
+    if (this.videoScrubEnabled) {
+      this.queueVideoSeek(video, targetTime);
     }
 
     this.updateContentReveal(targetTime);
+  }
+
+  private queueVideoSeek(video: HTMLVideoElement, targetTime: number): void {
+    this.pendingTargetTime = targetTime;
+
+    if (this.isSeeking) {
+      return;
+    }
+
+    this.flushVideoSeek(video);
+  }
+
+  private flushVideoSeek(video: HTMLVideoElement): void {
+    if (this.pendingTargetTime === null) {
+      return;
+    }
+
+    const targetTime = this.pendingTargetTime;
+
+    if (
+      Math.abs(video.currentTime - targetTime) < this.seekThreshold &&
+      Math.abs(this.lastAppliedTargetTime - targetTime) < this.seekThreshold
+    ) {
+      this.pendingTargetTime = null;
+      return;
+    }
+
+    this.isSeeking = true;
+    this.lastAppliedTargetTime = targetTime;
+
+    const onSeeked = () => {
+      video.removeEventListener('seeked', onSeeked);
+      this.isSeeking = false;
+
+      if (
+        this.pendingTargetTime !== null &&
+        Math.abs(this.pendingTargetTime - video.currentTime) >= this.seekThreshold
+      ) {
+        this.flushVideoSeek(video);
+        return;
+      }
+
+      this.pendingTargetTime = null;
+    };
+
+    video.addEventListener('seeked', onSeeked);
+
+    if ('fastSeek' in video && typeof video.fastSeek === 'function') {
+      video.fastSeek(targetTime);
+    } else {
+      video.currentTime = targetTime;
+    }
   }
 
   private updateContentReveal(clipTime: number): void {

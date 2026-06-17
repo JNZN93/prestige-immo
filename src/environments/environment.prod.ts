@@ -1,7 +1,7 @@
 export const environment = {
   production: true,
-  supabaseUrl: '',
-  supabaseAnonKey: '',
+  supabaseUrl: 'https://YOUR_PROJECT.supabase.co',
+  supabaseAnonKey: 'YOUR_ANON_KEY',
 };
 
 export function isSupabaseConfigured(): boolean {
