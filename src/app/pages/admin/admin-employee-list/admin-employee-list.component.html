@@ -1,0 +1,58 @@
+<div class="admin-page">
+  <header class="admin-page__header">
+    <div>
+      <h1>Mitarbeiter</h1>
+      <p>Legen Sie Zugänge für Mitarbeiter an, die Inserate verwalten dürfen.</p>
+    </div>
+    <div class="admin-page__header-actions">
+      <a routerLink="/" class="btn btn--outline">Zur Website</a>
+      <a routerLink="/admin/employees/new" class="btn btn--primary">Mitarbeiter anlegen</a>
+    </div>
+  </header>
+
+  @if (error()) {
+    <p class="admin-page__error" role="alert">{{ error() }}</p>
+  }
+
+  @if (loading()) {
+    <p class="admin-page__loading">Lade Mitarbeiter…</p>
+  } @else if (!employees().length) {
+    <div class="admin-page__empty">
+      <p>Noch keine Mitarbeiter angelegt.</p>
+      <a routerLink="/admin/employees/new" class="btn btn--outline">Ersten Mitarbeiter anlegen</a>
+    </div>
+  } @else {
+    <div class="employee-table">
+      @for (employee of employees(); track employee.id) {
+        <article class="employee-row">
+          <div class="employee-row__avatar" aria-hidden="true">
+            {{ (employee.fullName || employee.email).charAt(0).toUpperCase() }}
+          </div>
+          <div class="employee-row__info">
+            <h2>{{ employee.fullName || 'Ohne Name' }}</h2>
+            <p>{{ employee.email }}</p>
+            <span class="employee-row__badge" [class.employee-row__badge--inactive]="!employee.active">
+              {{ employee.active ? 'Aktiv' : 'Deaktiviert' }}
+            </span>
+          </div>
+          <div class="employee-row__actions">
+            <button
+              type="button"
+              class="btn btn--ghost"
+              [disabled]="updatingId === employee.id"
+              (click)="toggleActive(employee)"
+            >
+              @if (updatingId === employee.id) {
+                Speichern…
+              } @else if (employee.active) {
+                Deaktivieren
+              } @else {
+                Aktivieren
+              }
+            </button>
+          </div>
+        </article>
+      }
+    </div>
+  }
+</div>

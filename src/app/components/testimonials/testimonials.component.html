@@ -1,0 +1,40 @@
+<section class="testimonials">
+  <div class="container">
+    <div class="testimonials__layout reveal" appReveal>
+      <div class="testimonials__aside">
+        <h2 class="section-title">Stimmen unserer <em>Kunden</em></h2>
+        <p class="testimonials__desc">
+          Vertrauen entsteht durch Ergebnisse. Das sagen Käufer und Verkäufer über unsere Arbeit.
+        </p>
+
+        <div class="testimonials__nav">
+          <button class="testimonials__nav-btn" (click)="prev()" aria-label="Vorheriges Testimonial">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+          </button>
+          <button class="testimonials__nav-btn" (click)="next()" aria-label="Nächstes Testimonial">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="testimonials__panel">
+        @for (t of testimonials; track t.id; let i = $index) {
+          <blockquote class="testimonial" [class.active]="activeIndex() === i">
+            <p class="testimonial__text">"{{ t.text }}"</p>
+            <footer class="testimonial__author">
+              <img [src]="t.image" [alt]="t.name" class="testimonial__avatar" />
+              <div>
+                <cite class="testimonial__name">{{ t.name }}</cite>
+                <span class="testimonial__role">{{ t.role }}</span>
+              </div>
+            </footer>
+          </blockquote>
+        }
+      </div>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,36 @@
+<footer class="footer">
+  <div class="container">
+    <div class="footer__top">
+      <div class="footer__brand">
+        <a href="#" class="footer__logo">
+          <span class="footer__logo-mark">P</span>
+          <span class="footer__logo-text">
+            <strong>Prestige</strong>
+            <small>Immobilien</small>
+          </span>
+        </a>
+        <p class="footer__tagline">
+          Exklusive Immobilien. Persönliche Beratung seit 2008.
+        </p>
+      </div>
+
+      <div class="footer__links">
+        <div class="footer__col">
+          @for (link of links.nav; track link.label) {
+            <a [href]="link.href">{{ link.label }}</a>
+          }
+        </div>
+        <div class="footer__col">
+          @for (link of links.legal; track link.label) {
+            <a [href]="link.href">{{ link.label }}</a>
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="footer__bottom">
+      <span>&copy; {{ currentYear }} Prestige Immobilien</span>
+      <span>Maximilianstraße 35, München</span>
+    </div>
+  </div>
+</footer>

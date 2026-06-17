@@ -1,0 +1,114 @@
+.testimonials {
+  padding: clamp(5rem, 10vw, 8rem) 0;
+  background: var(--color-accent-muted);
+
+  &__layout {
+    display: grid;
+    grid-template-columns: 0.9fr 1.1fr;
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: start;
+
+    @media (max-width: 900px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  &__desc {
+    color: var(--color-text-muted);
+    line-height: 1.7;
+    max-width: 36ch;
+    margin-bottom: 2rem;
+  }
+
+  &__nav {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  &__nav-btn {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--color-border);
+    border-radius: 50%;
+    background: var(--color-bg-elevated);
+    color: var(--color-text);
+    transition: all 0.35s var(--transition-smooth);
+
+    &:hover {
+      border-color: var(--color-accent);
+      color: var(--color-accent);
+      transform: translateY(-2px);
+    }
+
+    &:active {
+      transform: scale(0.96);
+    }
+  }
+
+  &__panel {
+    position: relative;
+    min-height: 260px;
+    padding: clamp(2rem, 4vw, 3rem);
+    background: var(--color-bg-elevated);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
+    box-shadow: 0 16px 48px var(--color-shadow);
+  }
+}
+
+.testimonial {
+  position: absolute;
+  inset: clamp(2rem, 4vw, 3rem);
+  opacity: 0;
+  transform: translateY(16px);
+  transition: all 0.55s var(--transition-smooth);
+  pointer-events: none;
+  margin: 0;
+
+  &.active {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: all;
+    position: relative;
+    inset: auto;
+  }
+
+  &__text {
+    font-family: var(--font-display);
+    font-size: clamp(1.2rem, 2.5vw, 1.65rem);
+    font-style: italic;
+    line-height: 1.55;
+    margin-bottom: 2rem;
+    max-width: 48ch;
+  }
+
+  &__author {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  &__avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    object-fit: cover;
+  }
+
+  &__name {
+    display: block;
+    font-style: normal;
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+
+  &__role {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    margin-top: 0.15rem;
+  }
+}

@@ -1,0 +1,100 @@
+<section class="hero" id="hero" #heroSection [style.height.px]="heroScrollHeight() || null">
+  <div class="hero__sticky">
+    <div class="hero__video-wrap">
+      <video
+        #heroVideo
+        class="hero__video"
+        [class.hero__video--ready]="videoReady"
+        muted
+        playsinline
+        preload="auto"
+      >
+        <source src="/videos/127983-739777069_medium.mp4" type="video/mp4" />
+      </video>
+      <div class="hero__brighten" aria-hidden="true"></div>
+      <div class="hero__tone" aria-hidden="true"></div>
+      <div class="hero__readability" [style.opacity]="readabilityOpacity()" aria-hidden="true"></div>
+    </div>
+
+    <div
+      class="hero__slide"
+      [style.transform]="'translateY(' + contentOffsetY() + 'px)'"
+      [style.pointer-events]="contentReveal() > 0.05 ? 'auto' : 'none'"
+    >
+      <div class="hero__content container">
+        <div class="hero__main">
+          <span class="hero__badge">Premium Immobilien seit 2008</span>
+
+          <h1 class="hero__title">
+            Wo <em>Träume</em> ein Zuhause finden
+          </h1>
+
+          <p class="hero__subtitle">
+            Exklusive Wohn- und Gewerbeimmobilien in den begehrtesten Lagen Deutschlands.
+          </p>
+
+          <div class="hero__actions">
+            <a href="#immobilien" class="btn btn--primary">
+              Objekte ansehen
+            </a>
+            <a href="#kontakt" class="btn btn--outline hero__cta-secondary">Beratung anfragen</a>
+          </div>
+
+          <div class="hero__search">
+            <div class="hero__search-tabs">
+              <button
+                class="hero__search-tab"
+                [class.active]="searchType === 'kaufen'"
+                (click)="searchType = 'kaufen'"
+              >
+                Kaufen
+              </button>
+              <button
+                class="hero__search-tab"
+                [class.active]="searchType === 'mieten'"
+                (click)="searchType = 'mieten'"
+              >
+                Mieten
+              </button>
+            </div>
+
+            <div class="hero__search-form">
+              <div class="hero__search-field">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                  <circle cx="12" cy="10" r="3"/>
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Stadt, Stadtteil oder PLZ"
+                  [(ngModel)]="searchLocation"
+                  (keydown.enter)="onSearch()"
+                />
+              </div>
+              <button class="btn btn--primary hero__search-btn" (click)="onSearch()">Suchen</button>
+            </div>
+
+            @if (searchMessage) {
+              <p class="hero__search-hint" role="status">{{ searchMessage }}</p>
+            }
+          </div>
+        </div>
+
+        <div class="hero__stats">
+          <div class="hero__stat">
+            <span class="hero__stat-number">847</span>
+            <span class="hero__stat-label">Vermittelte Objekte</span>
+          </div>
+          <div class="hero__stat">
+            <span class="hero__stat-number">97,2%</span>
+            <span class="hero__stat-label">Kundenzufriedenheit</span>
+          </div>
+          <div class="hero__stat">
+            <span class="hero__stat-number">15</span>
+            <span class="hero__stat-label">Jahre Erfahrung</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

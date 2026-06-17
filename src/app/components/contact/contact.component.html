@@ -1,0 +1,113 @@
+<section class="contact" id="kontakt">
+  <div class="contact__bg">
+    <img
+      src="https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=1920&q=80"
+      alt=""
+      loading="lazy"
+    />
+    <div class="contact__bg-overlay"></div>
+  </div>
+
+  <div class="container">
+    <div class="contact__layout">
+      <div class="contact__info reveal-left" appReveal>
+        <h2 class="section-title">Lassen Sie uns <em>sprechen</em></h2>
+        <p class="contact__desc">
+          Ob Kauf, Verkauf oder Vermietung. Wir beraten Sie persönlich und unverbindlich.
+        </p>
+
+        <div class="contact__details">
+          <div class="contact__detail">
+            <strong>Adresse</strong>
+            <span>Maximilianstraße 35, 80539 München</span>
+          </div>
+          <div class="contact__detail">
+            <strong>Telefon</strong>
+            <span>+49 89 847 19 28</span>
+          </div>
+          <div class="contact__detail">
+            <strong>E-Mail</strong>
+            <span>firat.tasyurdu&#64;gmail.com</span>
+          </div>
+        </div>
+      </div>
+
+      <form class="contact__form reveal-right" appReveal (ngSubmit)="onSubmit()" novalidate>
+        @if (submitted) {
+          <div class="contact__success" role="status">
+            Vielen Dank. Wir melden uns in Kürze bei Ihnen.
+          </div>
+        }
+
+        @if (submitError) {
+          <div class="contact__submit-error" role="alert">
+            {{ submitError }}
+          </div>
+        }
+
+        <div class="contact__form-row">
+          <div class="contact__field">
+            <label for="name">Name</label>
+            <input
+              id="name"
+              type="text"
+              [(ngModel)]="form.name"
+              name="name"
+              placeholder="Ihr Name"
+              [class.invalid]="errors['name']"
+            />
+            @if (errors['name']) {
+              <span class="contact__error">{{ errors['name'] }}</span>
+            }
+          </div>
+          <div class="contact__field">
+            <label for="email">E-Mail</label>
+            <input
+              id="email"
+              type="email"
+              [(ngModel)]="form.email"
+              name="email"
+              placeholder="ihre&#64;email.de"
+              [class.invalid]="errors['email']"
+            />
+            @if (errors['email']) {
+              <span class="contact__error">{{ errors['email'] }}</span>
+            }
+          </div>
+        </div>
+
+        <div class="contact__form-row">
+          <div class="contact__field">
+            <label for="phone">Telefon</label>
+            <input id="phone" type="tel" [(ngModel)]="form.phone" name="phone" placeholder="+49 ..." />
+          </div>
+          <div class="contact__field">
+            <label for="interest">Interesse</label>
+            <select id="interest" [(ngModel)]="form.interest" name="interest">
+              <option value="kaufen">Kaufen</option>
+              <option value="verkaufen">Verkaufen</option>
+              <option value="mieten">Mieten</option>
+              <option value="vermieten">Vermieten</option>
+              <option value="beratung">Allgemeine Beratung</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="contact__field">
+          <label for="message">Nachricht</label>
+          <textarea
+            id="message"
+            [(ngModel)]="form.message"
+            name="message"
+            rows="4"
+            placeholder="Erzählen Sie uns von Ihrem Vorhaben"
+          ></textarea>
+        </div>
+
+        <button type="submit" class="btn btn--primary contact__submit" [disabled]="submitting">
+          {{ submitting ? 'Wird gesendet …' : 'Anfrage senden' }}
+        </button>
+      </form>
+    </div>
+  </div>
+</section>

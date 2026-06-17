@@ -1,0 +1,49 @@
+<div class="login">
+  <div class="login__card">
+    <a routerLink="/" class="login__back">← Zur Website</a>
+    <h1 class="login__title">Betreiber-Login</h1>
+    <p class="login__subtitle">Inserate verwalten und veröffentlichen</p>
+
+    @if (!supabaseConfigured) {
+      <div class="login__alert">
+        Supabase ist noch nicht konfiguriert. Tragen Sie URL und Anon-Key in
+        <code>src/environments/environment.ts</code> ein und führen Sie
+        <code>supabase/schema.sql</code> im Supabase SQL Editor aus.
+      </div>
+    }
+
+    <form class="login__form" (ngSubmit)="onSubmit()">
+      <label class="login__field">
+        <span>E-Mail</span>
+        <input
+          type="email"
+          name="email"
+          [(ngModel)]="email"
+          required
+          autocomplete="email"
+          placeholder="betreiber@example.com"
+        />
+      </label>
+
+      <label class="login__field">
+        <span>Passwort</span>
+        <input
+          type="password"
+          name="password"
+          [(ngModel)]="password"
+          required
+          autocomplete="current-password"
+          placeholder="••••••••"
+        />
+      </label>
+
+      @if (error) {
+        <p class="login__error" role="alert">{{ error }}</p>
+      }
+
+      <button type="submit" class="btn btn--primary login__submit" [disabled]="loading || !supabaseConfigured">
+        {{ loading ? 'Anmelden…' : 'Anmelden' }}
+      </button>
+    </form>
+  </div>
+</div>

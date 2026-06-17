@@ -1,0 +1,63 @@
+<div class="admin-page">
+  <header class="admin-page__header">
+    <div>
+      <a routerLink="/admin/employees" class="form-back">← Zurück zur Übersicht</a>
+      <h1>Mitarbeiter anlegen</h1>
+      <p>Der neue Zugang kann Inserate hinzufügen und bearbeiten.</p>
+    </div>
+  </header>
+
+  <form class="employee-form" (ngSubmit)="onSubmit()">
+    <section class="employee-form__section">
+      <label class="employee-form__field">
+        <span>Name</span>
+        <input type="text" name="fullName" [(ngModel)]="form.fullName" required placeholder="z. B. Anna Müller" />
+      </label>
+
+      <label class="employee-form__field">
+        <span>E-Mail</span>
+        <input
+          type="email"
+          name="email"
+          [(ngModel)]="form.email"
+          required
+          autocomplete="off"
+          placeholder="mitarbeiter@example.com"
+        />
+      </label>
+
+      <label class="employee-form__field">
+        <span>Passwort</span>
+        <input
+          type="password"
+          name="password"
+          [(ngModel)]="form.password"
+          required
+          minlength="8"
+          autocomplete="new-password"
+          placeholder="Mindestens 8 Zeichen"
+        />
+      </label>
+
+      <p class="employee-form__hint">
+        Der Mitarbeiter meldet sich mit E-Mail und Passwort unter
+        <strong>/admin/login</strong> an.
+      </p>
+    </section>
+
+    @if (error) {
+      <p class="admin-page__error" role="alert">{{ error }}</p>
+    }
+
+    @if (success) {
+      <p class="employee-form__success" role="status">{{ success }}</p>
+    }
+
+    <div class="employee-form__actions">
+      <a routerLink="/admin/employees" class="btn btn--ghost">Abbrechen</a>
+      <button type="submit" class="btn btn--primary" [disabled]="saving">
+        {{ saving ? 'Wird angelegt…' : 'Mitarbeiter anlegen' }}
+      </button>
+    </div>
+  </form>
+</div>

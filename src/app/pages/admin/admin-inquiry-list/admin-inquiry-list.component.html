@@ -1,0 +1,69 @@
+<div class="admin-page">
+  <header class="admin-page__header">
+    <div>
+      <h1>Anfragen</h1>
+      <p>Alle Kontaktanfragen aus dem Website-Formular im Überblick.</p>
+    </div>
+  </header>
+
+  @if (error()) {
+    <p class="admin-page__error" role="alert">{{ error() }}</p>
+  }
+
+  @if (loading()) {
+    <p class="admin-page__loading">Lade Anfragen…</p>
+  } @else if (!inquiries().length) {
+    <div class="admin-page__empty">
+      <p>Noch keine Anfragen vorhanden.</p>
+    </div>
+  } @else {
+    <div class="inquiry-table">
+      @for (inquiry of inquiries(); track inquiry.id) {
+        <article class="inquiry-row" [class.inquiry-row--handled]="inquiry.handled">
+          <div class="inquiry-row__top">
+            <h2>{{ inquiry.name }}</h2>
+            <span class="inquiry-row__date">{{ formatDate(inquiry.createdAt) }}</span>
+          </div>
+
+          <div class="inquiry-row__meta">
+            <a [href]="'mailto:' + inquiry.email">{{ inquiry.email }}</a>
+            @if (inquiry.phone) {
+              <a [href]="'tel:' + inquiry.phone">{{ inquiry.phone }}</a>
+            }
+            <span class="inquiry-row__badge">{{ formatInterest(inquiry.interest) }}</span>
+            <span class="inquiry-row__badge" [class.inquiry-row__badge--handled]="inquiry.handled">
+              {{ inquiry.handled ? 'Erledigt' : 'Offen' }}
+            </span>
+          </div>
+
+          @if (inquiry.message) {
+            <p class="inquiry-row__message">{{ inquiry.message }}</p>
+          }
+
+          @if (inquiry.handled && inquiry.handledByName) {
+            <p class="inquiry-row__handled-by">Erledigt von: {{ inquiry.handledByName }}</p>
+          }
+
+          <div class="inquiry-row__actions">
+            <button
+              type="button"
+              class="btn btn--ghost"
+              [disabled]="updatingId === inquiry.id || deletingId === inquiry.id"
+              (click)="toggleHandled(inquiry)"
+            >
+              {{ updatingId === inquiry.id ? 'Speichern…' : inquiry.handled ? 'Als offen markieren' : 'Als erledigt markieren' }}
+            </button>
+            <button
+              type="button"
+              class="btn btn--ghost inquiry-row__delete"
+              [disabled]="deletingId === inquiry.id || updatingId === inquiry.id"
+              (click)="deleteInquiry(inquiry)"
+            >
+              {{ deletingId === inquiry.id ? 'Löschen…' : 'Löschen' }}
+            </button>
+          </div>
+        </article>
+      }
+    </div>
+  }
+</div>

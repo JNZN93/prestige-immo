@@ -1,0 +1,63 @@
+<div class="admin-page">
+  <header class="admin-page__header">
+    <div>
+      <h1>Inserate</h1>
+      <p>Erstellen, bearbeiten und veröffentlichen Sie Ihre Immobilien.</p>
+    </div>
+    <div class="admin-page__header-actions">
+      <a routerLink="/" class="btn btn--outline">Zur Website</a>
+      <a routerLink="/admin/properties/new" class="btn btn--primary">Neues Inserat</a>
+    </div>
+  </header>
+
+  @if (error()) {
+    <p class="admin-page__error" role="alert">{{ error() }}</p>
+  }
+
+  @if (loading()) {
+    <p class="admin-page__loading">Lade Inserate…</p>
+  } @else if (!properties().length) {
+    <div class="admin-page__empty">
+      <p>Noch keine Inserate vorhanden.</p>
+      <a routerLink="/admin/properties/new" class="btn btn--outline">Erstes Inserat anlegen</a>
+    </div>
+  } @else {
+    <div class="property-table">
+      @for (property of properties(); track property.id) {
+        <article
+          class="property-row"
+          [class.property-row--assigned]="auth.profile()?.role === 'staff' && isAssignedToMe(property)"
+        >
+          <img [src]="property.image" [alt]="property.title" class="property-row__thumb" />
+          <div class="property-row__info">
+            <h2>{{ property.title }}</h2>
+            <p>{{ property.location }} · {{ property.type }} · {{ property.price }}</p>
+            <div class="property-row__meta">
+              @if (auth.profile()?.role === 'staff' && isAssignedToMe(property)) {
+                <span class="property-row__badge property-row__badge--mine">Ihnen zugewiesen</span>
+              }
+              <span class="property-row__badge" [class.property-row__badge--draft]="!property.published">
+                {{ property.published ? 'Veröffentlicht' : 'Entwurf' }}
+              </span>
+              <span class="property-row__layout">{{ property.layout }}</span>
+              @if (property.assignedToName) {
+                <span class="property-row__assignee">{{ property.assignedToName }}</span>
+              }
+            </div>
+          </div>
+          <div class="property-row__actions">
+            <a [routerLink]="['/admin/properties', property.id, 'edit']" class="btn btn--ghost">Bearbeiten</a>
+            <button
+              type="button"
+              class="btn btn--ghost property-row__delete"
+              [disabled]="deletingId === property.id"
+              (click)="deleteProperty(property)"
+            >
+              {{ deletingId === property.id ? 'Löschen…' : 'Löschen' }}
+            </button>
+          </div>
+        </article>
+      }
+    </div>
+  }
+</div>

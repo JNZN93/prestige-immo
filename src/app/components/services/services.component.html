@@ -1,0 +1,33 @@
+<section class="services" id="leistungen">
+  <div class="container">
+    <div class="services__intro reveal" appReveal>
+      <h2 class="section-title">Was wir <em>für Sie</em> tun</h2>
+      <p class="services__desc">
+        Von der ersten Besichtigung bis zur Schlüsselübergabe begleiten wir Sie mit Expertise und Diskretion.
+      </p>
+    </div>
+
+    <div class="services__list">
+      @for (service of services; track service.title; let i = $index) {
+        <article
+          class="service-row reveal"
+          [class.service-row--reverse]="i % 2 === 1"
+          appReveal
+          [style.transition-delay]="i * 0.1 + 's'"
+        >
+          <div class="service-row__media">
+            <div class="service-row__media-shell">
+              <img [src]="service.image" [alt]="service.title" loading="lazy" />
+            </div>
+          </div>
+          <div class="service-row__content">
+            <span class="service-row__index">0{{ i + 1 }}</span>
+            <h3 class="service-row__title">{{ service.title }}</h3>
+            <p class="service-row__desc">{{ service.description }}</p>
+            <a href="#kontakt" class="service-row__link">Mehr erfahren</a>
+          </div>
+        </article>
+      }
+    </div>
+  </div>
+</section>

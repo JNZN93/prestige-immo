@@ -1,0 +1,72 @@
+<header class="header" [class.scrolled]="scrolled()" [class.menu-open]="menuOpen()">
+  <div class="header__shell container">
+    <div class="header__inner">
+      <a href="#" class="header__logo" (click)="closeMenu()">
+        <span class="header__logo-mark">P</span>
+        <span class="header__logo-text">
+          <strong>Prestige</strong>
+          <small>Immobilien</small>
+        </span>
+      </a>
+
+      <nav class="header__nav" aria-label="Hauptnavigation">
+        @for (link of navLinks; track link.href) {
+          <a
+            [href]="link.href"
+            class="header__link"
+            [class.active]="activeSection() === link.id"
+            (click)="closeMenu()"
+          >
+            {{ link.label }}
+          </a>
+        }
+      </nav>
+
+      <div class="header__actions">
+        <a
+          [routerLink]="auth.isAuthenticated() ? '/admin/properties' : '/admin/login'"
+          class="header__admin"
+          [attr.aria-label]="auth.isAuthenticated() ? 'Inserate verwalten' : 'Betreiber-Login'"
+          [title]="auth.isAuthenticated() ? 'Inserate verwalten' : 'Betreiber-Login'"
+          (click)="closeMenu()"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Zm0 2.25c-4.28 0-7.75 2.36-7.75 5.25a.75.75 0 0 0 .75.75h14a.75.75 0 0 0 .75-.75c0-2.89-3.47-5.25-7.75-5.25Z"
+              fill="currentColor"
+            />
+          </svg>
+        </a>
+
+        <a href="#kontakt" class="header__cta btn btn--primary" (click)="closeMenu()">
+          Beratung anfragen
+        </a>
+      </div>
+
+      <button
+        class="header__burger"
+        type="button"
+        (click)="toggleMenu()"
+        [attr.aria-expanded]="menuOpen()"
+        [attr.aria-label]="menuOpen() ? 'Navigation schließen' : 'Navigation öffnen'"
+      >
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+  </div>
+
+  <div class="header__mobile-nav" [class.open]="menuOpen()">
+    @for (link of navLinks; track link.href) {
+      <a [href]="link.href" class="header__mobile-link" (click)="closeMenu()">{{ link.label }}</a>
+    }
+    <a href="#kontakt" class="btn btn--primary" (click)="closeMenu()">Beratung anfragen</a>
+    <a
+      [routerLink]="auth.isAuthenticated() ? '/admin/properties' : '/admin/login'"
+      class="header__mobile-admin"
+      (click)="closeMenu()"
+    >
+      {{ auth.isAuthenticated() ? 'Inserate verwalten' : 'Betreiber-Login' }}
+    </a>
+  </div>
+</header>

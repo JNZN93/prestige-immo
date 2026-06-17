@@ -1,0 +1,124 @@
+.property-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.property-row {
+  display: grid;
+  grid-template-columns: 96px 1fr auto;
+  gap: 1.25rem;
+  align-items: center;
+  padding: 1rem;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: border-color 0.3s, box-shadow 0.3s, background 0.3s;
+
+  &--assigned {
+    border-color: var(--color-accent);
+    background: var(--color-accent-muted);
+    box-shadow: 0 0 0 1px rgba(26, 61, 92, 0.12);
+  }
+}
+
+.property-row__thumb {
+  width: 96px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+}
+
+.property-row__info {
+  h2 {
+    font-size: 1.05rem;
+    margin-bottom: 0.2rem;
+  }
+
+  p {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+  }
+}
+
+.property-row__meta {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.property-row__badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-pill);
+  background: rgba(26, 61, 92, 0.1);
+  color: var(--color-accent);
+
+  &--draft {
+    background: rgba(180, 80, 40, 0.1);
+    color: #8a3f1f;
+  }
+
+  &--mine {
+    background: var(--color-accent);
+    color: var(--color-on-accent);
+  }
+}
+
+.property-row__layout {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.property-row__assignee {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-pill);
+  background: rgba(26, 61, 92, 0.06);
+  color: var(--color-accent-light);
+}
+
+.property-row__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.property-row__delete {
+  color: #b42318;
+
+  &:hover {
+    border-color: #b42318;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-page__header {
+    flex-direction: column;
+  }
+
+  .admin-page__header-actions {
+    width: 100%;
+
+    .btn {
+      flex: 1;
+    }
+  }
+
+  .property-row {
+    grid-template-columns: 1fr;
+  }
+
+  .property-row__thumb {
+    width: 100%;
+    height: 160px;
+  }
+
+  .property-row__actions {
+    flex-wrap: wrap;
+  }
+}

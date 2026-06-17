@@ -1,0 +1,70 @@
+@if (isVisible()) {
+  <div
+    class="gallery"
+    [class.gallery--open]="!isClosing()"
+    [class.gallery--closing]="isClosing()"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-label]="'Bildergalerie: ' + title"
+  >
+    <button type="button" class="gallery__backdrop" aria-label="Galerie schließen" (click)="close()"></button>
+
+    <div class="gallery__panel">
+      <header class="gallery__header">
+        <div>
+          <p class="gallery__label">Bildergalerie</p>
+          <h2 class="gallery__title">{{ title }}</h2>
+        </div>
+        <button type="button" class="gallery__close" aria-label="Schließen" (click)="close()">×</button>
+      </header>
+
+      <div class="gallery__stage">
+        @if (hasMultiple) {
+          <button type="button" class="gallery__nav gallery__nav--prev" aria-label="Vorheriges Bild" (click)="prev()">
+            ‹
+          </button>
+        }
+
+        <div class="gallery__image-frame">
+          @if (previousIndex() !== null) {
+            <img
+              [src]="images[previousIndex()!]"
+              [alt]="title + ' – Bild ' + (previousIndex()! + 1)"
+              class="gallery__image gallery__image--out"
+            />
+          }
+          <img
+            [src]="images[currentIndex()]"
+            [alt]="title + ' – Bild ' + (currentIndex() + 1)"
+            class="gallery__image"
+            [class.gallery__image--in]="previousIndex() !== null"
+          />
+        </div>
+
+        @if (hasMultiple) {
+          <button type="button" class="gallery__nav gallery__nav--next" aria-label="Nächstes Bild" (click)="next()">
+            ›
+          </button>
+        }
+      </div>
+
+      @if (hasMultiple) {
+        <p class="gallery__counter">{{ currentIndex() + 1 }} / {{ images.length }}</p>
+
+        <div class="gallery__thumbs">
+          @for (image of images; track image; let i = $index) {
+            <button
+              type="button"
+              class="gallery__thumb"
+              [class.gallery__thumb--active]="i === currentIndex()"
+              [attr.aria-label]="'Bild ' + (i + 1) + ' anzeigen'"
+              (click)="goTo(i)"
+            >
+              <img [src]="image" [alt]="title + ' Vorschau ' + (i + 1)" />
+            </button>
+          }
+        </div>
+      }
+    </div>
+  </div>
+}

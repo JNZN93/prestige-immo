@@ -1,0 +1,168 @@
+<div class="admin-page">
+  <header class="admin-page__header">
+    <div>
+      <a routerLink="/admin/properties" class="form-back">← Zurück zur Übersicht</a>
+      <h1>{{ isEditMode ? 'Inserat bearbeiten' : 'Neues Inserat' }}</h1>
+    </div>
+  </header>
+
+  @if (loading) {
+    <p class="admin-page__loading">Lade Inserat…</p>
+  } @else {
+    <form class="property-form" (ngSubmit)="onSubmit()">
+      <div class="property-form__grid">
+        <section class="property-form__section">
+          <h2>Grunddaten</h2>
+
+          <label class="property-form__field property-form__field--full">
+            <span>Titel</span>
+            <input type="text" name="title" [(ngModel)]="form.title" required />
+          </label>
+
+          <label class="property-form__field property-form__field--full">
+            <span>Standort</span>
+            <input type="text" name="location" [(ngModel)]="form.location" required placeholder="z. B. München, Bayern" />
+          </label>
+
+          <label class="property-form__field">
+            <span>Preis (Anzeige)</span>
+            <input type="text" name="price" [(ngModel)]="form.price" required placeholder="z. B. 1.650.000 €" />
+          </label>
+
+          <label class="property-form__field">
+            <span>Art</span>
+            <select name="type" [(ngModel)]="form.type">
+              @for (type of types; track type) {
+                <option [value]="type">{{ type }}</option>
+              }
+            </select>
+          </label>
+
+          <label class="property-form__field">
+            <span>Zimmer</span>
+            <input type="number" name="beds" [(ngModel)]="form.beds" min="0" required />
+          </label>
+
+          <label class="property-form__field">
+            <span>Bäder</span>
+            <input type="number" name="baths" [(ngModel)]="form.baths" min="0" required />
+          </label>
+
+          <label class="property-form__field">
+            <span>Fläche (m²)</span>
+            <input type="number" name="area" [(ngModel)]="form.area" min="0" required />
+          </label>
+
+          <label class="property-form__field">
+            <span>Sortierung</span>
+            <input type="number" name="sortOrder" [(ngModel)]="form.sortOrder" min="0" />
+          </label>
+
+          @if (auth.isOwner()) {
+            <label class="property-form__field property-form__field--full">
+              <span>Zuständiger Mitarbeiter</span>
+              <select name="assignedTo" [(ngModel)]="form.assignedTo">
+                <option [ngValue]="null">Keiner zugewiesen</option>
+                @for (employee of staff(); track employee.id) {
+                  <option [ngValue]="employee.id">
+                    {{ employee.fullName || employee.email }}
+                  </option>
+                }
+              </select>
+            </label>
+          } @else {
+            <div class="property-form__readonly">
+              <span>Zuständiger Mitarbeiter</span>
+              <p>{{ assignedDisplayName || 'Keiner zugewiesen' }}</p>
+              <small>Nur der Betreiber kann die Zuweisung ändern.</small>
+            </div>
+          }
+        </section>
+
+        <section class="property-form__section property-form__section--gallery">
+          <h2>Bilder & Darstellung</h2>
+          <p class="property-form__hint">Das erste Bild wird als Titelbild auf der Website angezeigt.</p>
+
+          <label class="property-form__field property-form__field--full">
+            <span>Bilder hochladen</span>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              (change)="onImagesSelected($event)"
+              [disabled]="uploading"
+            />
+            @if (uploading) {
+              <small>Wird hochgeladen…</small>
+            }
+          </label>
+
+          <div class="property-form__url-add">
+            <label class="property-form__field property-form__field--full">
+              <span>Bild-URL hinzufügen</span>
+              <input
+                type="url"
+                name="newImageUrl"
+                [(ngModel)]="newImageUrl"
+                placeholder="https://..."
+              />
+            </label>
+            <button type="button" class="btn btn--ghost" (click)="addImageUrl()">URL hinzufügen</button>
+          </div>
+
+          @if (form.images.length) {
+            <div class="gallery-editor">
+              @for (image of form.images; track image; let i = $index) {
+                <div class="gallery-editor__item">
+                  <img [src]="image" [alt]="'Bild ' + (i + 1)" />
+                  <div class="gallery-editor__actions">
+                    @if (i === 0) {
+                      <span class="gallery-editor__cover">Titelbild</span>
+                    } @else {
+                      <button type="button" class="btn btn--ghost" (click)="setCover(i)">Als Titelbild</button>
+                    }
+                    <button type="button" class="btn btn--ghost gallery-editor__remove" (click)="removeImage(i)">
+                      Entfernen
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          } @else {
+            <p class="property-form__empty-images">Noch keine Bilder hinzugefügt.</p>
+          }
+
+          <label class="property-form__field">
+            <span>Layout</span>
+            <select name="layout" [(ngModel)]="form.layout">
+              @for (layout of layouts; track layout) {
+                <option [value]="layout">{{ layout }}</option>
+              }
+            </select>
+          </label>
+
+          <label class="property-form__checkbox">
+            <input type="checkbox" name="featured" [(ngModel)]="form.featured" />
+            <span>Als Highlight markieren</span>
+          </label>
+
+          <label class="property-form__checkbox">
+            <input type="checkbox" name="published" [(ngModel)]="form.published" />
+            <span>Veröffentlicht</span>
+          </label>
+        </section>
+      </div>
+
+      @if (error) {
+        <p class="admin-page__error" role="alert">{{ error }}</p>
+      }
+
+      <div class="property-form__actions">
+        <a routerLink="/admin/properties" class="btn btn--ghost">Abbrechen</a>
+        <button type="submit" class="btn btn--primary" [disabled]="saving">
+          {{ saving ? 'Speichern…' : (isEditMode ? 'Änderungen speichern' : 'Inserat erstellen') }}
+        </button>
+      </div>
+    </form>
+  }
+</div>

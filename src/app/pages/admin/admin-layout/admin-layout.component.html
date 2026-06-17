@@ -1,0 +1,31 @@
+<div class="admin-layout">
+  <aside class="admin-sidebar">
+    <a routerLink="/" class="admin-sidebar__brand">Prestige Immobilien</a>
+    <p class="admin-sidebar__label">Betreiberbereich</p>
+
+    <nav class="admin-sidebar__nav">
+      <a routerLink="/admin/properties" routerLinkActive="active">Inserate</a>
+      <a routerLink="/admin/inquiries" routerLinkActive="active" class="admin-sidebar__nav-link">
+        <span>Anfragen</span>
+        @if (openInquiryCount() > 0) {
+          <span class="admin-sidebar__badge">{{ openInquiryCount() }}</span>
+        }
+      </a>
+      @if (auth.isOwner()) {
+        <a routerLink="/admin/employees" routerLinkActive="active">Mitarbeiter</a>
+      }
+    </nav>
+
+    <div class="admin-sidebar__footer">
+      <span class="admin-sidebar__email">{{ auth.user()?.email }}</span>
+      @if (auth.profile()?.role === 'staff') {
+        <span class="admin-sidebar__role">Mitarbeiter</span>
+      }
+      <button type="button" class="admin-sidebar__logout" (click)="logout()">Abmelden</button>
+    </div>
+  </aside>
+
+  <main class="admin-main">
+    <router-outlet />
+  </main>
+</div>

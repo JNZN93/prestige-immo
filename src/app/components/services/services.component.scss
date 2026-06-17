@@ -1,0 +1,107 @@
+.services {
+  padding: clamp(5rem, 10vw, 8rem) 0;
+  background: var(--color-bg-elevated);
+
+  &__intro {
+    max-width: 520px;
+    margin-bottom: clamp(3rem, 6vw, 5rem);
+  }
+
+  &__desc {
+    color: var(--color-text-muted);
+    font-size: 1.05rem;
+    line-height: 1.7;
+    max-width: 42ch;
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(3rem, 6vw, 5rem);
+  }
+}
+
+.service-row {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: clamp(2rem, 5vw, 4rem);
+  align-items: center;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+
+  &--reverse {
+    .service-row__media {
+      order: 2;
+    }
+
+    .service-row__content {
+      order: 1;
+    }
+
+    @media (max-width: 768px) {
+      .service-row__media,
+      .service-row__content {
+        order: unset;
+      }
+    }
+  }
+
+  &__media-shell {
+    padding: 5px;
+    background: var(--color-surface);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
+    overflow: hidden;
+    box-shadow: 0 16px 48px var(--color-shadow);
+
+    img {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      object-fit: cover;
+      border-radius: calc(var(--radius-lg) - 5px);
+      transition: transform 0.6s var(--transition-smooth);
+    }
+  }
+
+  &:hover &__media-shell img {
+    transform: scale(1.03);
+  }
+
+  &__index {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    color: var(--color-accent-light);
+    margin-bottom: 1rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__title {
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    margin-bottom: 1rem;
+  }
+
+  &__desc {
+    color: var(--color-text-muted);
+    line-height: 1.75;
+    max-width: 42ch;
+    margin-bottom: 1.5rem;
+  }
+
+  &__link {
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.3s;
+
+    &:hover {
+      border-color: var(--color-accent);
+    }
+  }
+}
