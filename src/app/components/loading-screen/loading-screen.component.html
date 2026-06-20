@@ -1,0 +1,10 @@
+<div class="loader" role="status" aria-live="polite" aria-label="Website wird geladen">
+  <div class="loader__inner">
+    <p class="loader__brand">Prestige Immobilien</p>
+    <p class="loader__percent">{{ progress() }}%</p>
+    <div class="loader__track" aria-hidden="true">
+      <span class="loader__bar" [style.width.%]="progress()"></span>
+    </div>
+    <p class="loader__hint">Erlebnis wird vorbereitet…</p>
+  </div>
+</div>

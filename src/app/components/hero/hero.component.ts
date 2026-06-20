@@ -8,9 +8,11 @@ import {
   PLATFORM_ID,
   signal,
   ViewChild,
+  inject,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HeroVideoLoaderService } from '../../services/hero-video-loader.service';
 
 @Component({
   selector: 'app-hero',
@@ -23,11 +25,12 @@ export class HeroComponent implements AfterViewInit, OnDestroy {
   @ViewChild('heroSection') heroSection!: ElementRef<HTMLElement>;
   @ViewChild('heroVideo') heroVideo!: ElementRef<HTMLVideoElement>;
 
+  private readonly videoLoader = inject(HeroVideoLoaderService);
+
   searchType = 'kaufen';
   searchLocation = '';
   videoReady = false;
   searchMessage = '';
-  useSimpleVideoMode = false;
 
   readonly heroScrollHeight = signal(0);
   readonly contentReveal = signal(0);
@@ -37,8 +40,6 @@ export class HeroComponent implements AfterViewInit, OnDestroy {
   private readonly clipDuration = 19;
   private readonly contentFadeLeadInClip = 13;
   private readonly scrollTrackViewports = 2;
-  private readonly desktopVideoSrc = '/videos/127983-739777069_medium.mp4';
-  private readonly mobileVideoSrc = '/videos/hero.mp4';
   private readonly seekThreshold = 0.08;
   private readonly minSeekIntervalMs = 80;
 
@@ -51,6 +52,7 @@ export class HeroComponent implements AfterViewInit, OnDestroy {
   private pendingTargetTime: number | null = null;
   private lastAppliedTargetTime = -1;
   private lastSeekAt = 0;
+  private useStaticVideo = false;
 
   private onScroll = () => this.scheduleScrollUpdate();
   private onResize = () => {
@@ -66,7 +68,7 @@ export class HeroComponent implements AfterViewInit, OnDestroy {
       return;
     }
 
-    this.useSimpleVideoMode = this.shouldUseSimpleVideoMode();
+    this.useStaticVideo = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.updateHeroScrollHeight();
     this.updateContentHideOffset();
     this.hideHeroContent();
@@ -93,11 +95,16 @@ export class HeroComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  private shouldUseSimpleVideoMode(): boolean {
-    const coarsePointer = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
-    const narrowViewport = window.matchMedia('(max-width: 900px)').matches;
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    return coarsePointer || narrowViewport || reducedMotion;
+  private isMobileDevice(): boolean {
+    return window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+  }
+
+  private getSeekThreshold(): number {
+    return this.isMobileDevice() ? 0.12 : this.seekThreshold;
+  }
+
+  private getMinSeekIntervalMs(): number {
+    return this.isMobileDevice() ? 120 : this.minSeekIntervalMs;
   }
 
   private async initVideo(): Promise<void> {
@@ -112,48 +119,30 @@ export class HeroComponent implements AfterViewInit, OnDestroy {
     video.setAttribute('webkit-playsinline', '');
     video.disablePictureInPicture = true;
     video.controls = false;
-
-    if (this.useSimpleVideoMode) {
-      await this.initSimpleVideo(video);
-      return;
-    }
-
-    await this.initScrubVideo(video);
-  }
-
-  private async initSimpleVideo(video: HTMLVideoElement): Promise<void> {
-    video.preload = 'metadata';
-    video.loop = true;
-    video.src = this.mobileVideoSrc;
-
-    await this.waitForVideoMetadata(video);
-
-    this.videoReady = true;
-    this.updateHeroScrollHeight();
-
-    try {
-      await video.play();
-    } catch {
-      // Autoplay may require another user gesture on some devices.
-    }
-
-    this.updateContentFromScrollProgress();
-  }
-
-  private async initScrubVideo(video: HTMLVideoElement): Promise<void> {
     video.preload = 'auto';
     video.loop = false;
     video.pause();
-    video.src = this.desktopVideoSrc;
 
+    const videoUrl = await this.videoLoader.preload();
+    video.src = videoUrl;
+
+    this.videoLoader.setPhaseProgress(20);
     await this.waitForVideoMetadata(video);
+
+    this.videoLoader.setPhaseProgress(55);
     await this.waitForVideoBuffer(video);
+
+    if (!this.useStaticVideo) {
+      this.videoLoader.setPhaseProgress(80);
+      await this.warmVideoDecoder(video);
+    }
 
     video.currentTime = this.getClipEndTime();
     this.lastAppliedTargetTime = video.currentTime;
     this.videoReady = true;
     this.updateHeroScrollHeight();
     this.updateVideoFromScroll();
+    this.videoLoader.complete();
   }
 
   private waitForVideoMetadata(video: HTMLVideoElement): Promise<void> {
@@ -201,7 +190,7 @@ export class HeroComponent implements AfterViewInit, OnDestroy {
       check();
       video.addEventListener('progress', check);
       video.addEventListener('canplaythrough', finish, { once: true });
-      window.setTimeout(finish, 8000);
+      window.setTimeout(finish, 15000);
     });
   }
 
@@ -218,6 +207,32 @@ export class HeroComponent implements AfterViewInit, OnDestroy {
     }
 
     return false;
+  }
+
+  private async warmVideoDecoder(video: HTMLVideoElement): Promise<void> {
+    const clipEnd = this.getClipEndTime();
+    const points = [clipEnd, this.videoStartTime + this.activeClipDuration * 0.5, this.videoStartTime, clipEnd];
+
+    for (const time of points) {
+      await this.seekVideoTo(video, time);
+    }
+  }
+
+  private seekVideoTo(video: HTMLVideoElement, targetTime: number): Promise<void> {
+    return new Promise((resolve) => {
+      if (Math.abs(video.currentTime - targetTime) < this.getSeekThreshold()) {
+        resolve();
+        return;
+      }
+
+      const onSeeked = () => {
+        video.removeEventListener('seeked', onSeeked);
+        resolve();
+      };
+
+      video.addEventListener('seeked', onSeeked);
+      video.currentTime = targetTime;
+    });
   }
 
   private getPlayableDuration(video: HTMLVideoElement): number {
@@ -254,12 +269,6 @@ export class HeroComponent implements AfterViewInit, OnDestroy {
 
     this.scrollRaf = requestAnimationFrame(() => {
       this.scrollRaf = 0;
-
-      if (this.useSimpleVideoMode) {
-        this.updateContentFromScrollProgress();
-        return;
-      }
-
       this.updateVideoFromScroll();
     });
   }
@@ -284,18 +293,6 @@ export class HeroComponent implements AfterViewInit, OnDestroy {
     return this.videoStartTime + Math.max(this.activeClipDuration - 0.05, 0);
   }
 
-  private updateContentFromScrollProgress(): void {
-    const progress = this.getScrollProgress();
-    const revealStart = 0.18;
-    const revealEnd = 0.72;
-    const normalized = (progress - revealStart) / (revealEnd - revealStart);
-    const eased = this.easeOutCubic(Math.min(Math.max(normalized, 0), 1));
-
-    this.contentReveal.set(eased);
-    this.contentOffsetY.set((1 - eased) * this.contentHideOffset);
-    this.readabilityOpacity.set(eased * 0.55);
-  }
-
   private updateVideoFromScroll(): void {
     const video = this.heroVideo?.nativeElement;
     if (!video || !this.activeClipDuration) {
@@ -308,7 +305,10 @@ export class HeroComponent implements AfterViewInit, OnDestroy {
     const clipSpan = clipEnd - this.videoStartTime;
     const targetTime = clipEnd - progress * clipSpan;
 
-    this.queueVideoSeek(video, targetTime);
+    if (!this.useStaticVideo) {
+      this.queueVideoSeek(video, targetTime);
+    }
+
     this.updateContentReveal(targetTime);
   }
 
@@ -320,7 +320,9 @@ export class HeroComponent implements AfterViewInit, OnDestroy {
     }
 
     const now = performance.now();
-    if (now - this.lastSeekAt < this.minSeekIntervalMs) {
+    const minInterval = this.getMinSeekIntervalMs();
+
+    if (now - this.lastSeekAt < minInterval) {
       if (!this.seekRaf) {
         this.seekRaf = requestAnimationFrame(() => {
           this.seekRaf = 0;
@@ -339,10 +341,11 @@ export class HeroComponent implements AfterViewInit, OnDestroy {
     }
 
     const targetTime = this.pendingTargetTime;
+    const threshold = this.getSeekThreshold();
 
     if (
-      Math.abs(video.currentTime - targetTime) < this.seekThreshold &&
-      Math.abs(this.lastAppliedTargetTime - targetTime) < this.seekThreshold
+      Math.abs(video.currentTime - targetTime) < threshold &&
+      Math.abs(this.lastAppliedTargetTime - targetTime) < threshold
     ) {
       this.pendingTargetTime = null;
       return;
@@ -356,10 +359,7 @@ export class HeroComponent implements AfterViewInit, OnDestroy {
       video.removeEventListener('seeked', onSeeked);
       this.isSeeking = false;
 
-      if (
-        this.pendingTargetTime !== null &&
-        Math.abs(this.pendingTargetTime - video.currentTime) >= this.seekThreshold
-      ) {
+      if (this.pendingTargetTime !== null && Math.abs(this.pendingTargetTime - video.currentTime) >= threshold) {
         this.queueVideoSeek(video, this.pendingTargetTime);
         return;
       }
