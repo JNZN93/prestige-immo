@@ -29,9 +29,27 @@
     object-position: center;
     opacity: 0;
     filter: saturate(0.84) contrast(0.96) brightness(1.04);
+    transform: scale(1);
+    transform-origin: center center;
+    will-change: opacity;
 
     &--ready {
       opacity: 1;
+    }
+
+    &--ambient {
+      animation: heroKenBurns 22s ease-in-out infinite alternate;
+      will-change: transform, opacity;
+    }
+  }
+
+  @keyframes heroKenBurns {
+    0% {
+      transform: scale(1) translate3d(0, 0, 0);
+    }
+
+    100% {
+      transform: scale(1.08) translate3d(0, -1.5%, 0);
     }
   }
 
@@ -285,6 +303,12 @@
 
     &__stats {
       padding-top: 1.25rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &__video--ambient {
+      animation: none;
     }
   }
 }

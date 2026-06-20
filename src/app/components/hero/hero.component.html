@@ -5,9 +5,11 @@
         #heroVideo
         class="hero__video"
         [class.hero__video--ready]="videoReady"
+        [class.hero__video--ambient]="useSimpleVideoMode"
         muted
         playsinline
-        preload="auto"
+        webkit-playsinline
+        [attr.preload]="useSimpleVideoMode ? 'metadata' : 'auto'"
         disablepictureinpicture
         disableremoteplayback
       ></video>
