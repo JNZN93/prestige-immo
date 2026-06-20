@@ -2,6 +2,8 @@ export const environment = {
   production: false,
   supabaseUrl: 'https://vvdzmkirnaxxqcmctrsf.supabase.co',
   supabaseAnonKey: 'sb_publishable_mMOraOiAzaTGXG-dNiaCuA_78zHHuw0',
+  /** Optional CDN base for hero frames, e.g. Supabase Storage public URL. */
+  heroFramesBaseUrl: null as string | null,
 };
 
 export function isSupabaseConfigured(): boolean {

@@ -13,6 +13,9 @@ const outDir = join(root, 'public/videos/hero-frames');
 const frameCount = 120;
 const clipSeconds = 15;
 const contentRevealSeconds = 7;
+const frameWidth = 1080;
+const frameExtension = 'webp';
+const frameQuality = 82;
 
 function runFfmpeg(args) {
   return new Promise((resolve, reject) => {
@@ -51,10 +54,10 @@ async function extractFrames() {
   const startTime = Math.max(0, duration - clipSeconds);
   const interiorFrames = frameCount - 1;
   const fps = interiorFrames / clipSeconds;
-  const pattern = join(outDir, 'frame-%03d.jpg');
-  const lastFramePath = join(outDir, `frame-${String(frameCount).padStart(3, '0')}.jpg`);
+  const pattern = join(outDir, `frame-%03d.${frameExtension}`);
+  const lastFramePath = join(outDir, `frame-${String(frameCount).padStart(3, '0')}.${frameExtension}`);
+  const encodeArgs = ['-c:v', 'libwebp', '-quality', String(frameQuality)];
 
-  // Frames 001…119: evenly sampled from [startTime … end), excluding the final slot.
   await runFfmpeg([
     '-hide_banner',
     '-loglevel',
@@ -66,16 +69,14 @@ async function extractFrames() {
     '-t',
     String(clipSeconds),
     '-vf',
-    `fps=${fps},scale=1440:-2:flags=lanczos`,
+    `fps=${fps},scale=${frameWidth}:-2:flags=lanczos`,
     '-frames:v',
     String(interiorFrames),
-    '-q:v',
-    '4',
+    ...encodeArgs,
     '-y',
     pattern,
   ]);
 
-  // Frame 120: exact last frame of the source video.
   await runFfmpeg([
     '-hide_banner',
     '-loglevel',
@@ -84,10 +85,11 @@ async function extractFrames() {
     '-0.04',
     '-i',
     videoPath,
+    '-vf',
+    `scale=${frameWidth}:-2:flags=lanczos`,
     '-frames:v',
     '1',
-    '-q:v',
-    '4',
+    ...encodeArgs,
     '-y',
     lastFramePath,
   ]);
@@ -96,16 +98,18 @@ async function extractFrames() {
     frameCount,
     clipSeconds,
     fps: frameCount / clipSeconds,
+    extension: frameExtension,
+    baseUrl: '/videos/hero-frames',
     videoDuration: Number(duration.toFixed(2)),
     clipStartSeconds: Number(startTime.toFixed(2)),
-    pattern: '/videos/hero-frames/frame-{index}.jpg',
+    pattern: `/videos/hero-frames/frame-{index}.${frameExtension}`,
     contentFadeLeadInFrames: Math.round((contentRevealSeconds / clipSeconds) * frameCount),
     endsAtVideoEnd: true,
   };
 
   await writeFile(join(outDir, 'manifest.json'), JSON.stringify(manifest, null, 2));
   console.log(
-    `Extracted ${frameCount} frames (${startTime.toFixed(1)}s–${duration.toFixed(1)}s) to ${outDir}`,
+    `Extracted ${frameCount} ${frameExtension} frames (${startTime.toFixed(1)}s–${duration.toFixed(1)}s) to ${outDir}`,
   );
 }
 

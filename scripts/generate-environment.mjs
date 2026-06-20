@@ -15,10 +15,13 @@ const supabaseAnonKey =
   process.env.NG_APP_SUPABASE_ANON_KEY ||
   'YOUR_ANON_KEY';
 
+const heroFramesBaseUrl = process.env.HERO_FRAMES_BASE_URL || null;
+
 const environmentProd = `export const environment = {
   production: true,
   supabaseUrl: '${supabaseUrl}',
   supabaseAnonKey: '${supabaseAnonKey}',
+  heroFramesBaseUrl: ${heroFramesBaseUrl ? `'${heroFramesBaseUrl}'` : 'null'},
 };
 
 export function isSupabaseConfigured(): boolean {

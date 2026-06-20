@@ -2,9 +2,11 @@
   "frameCount": 120,
   "clipSeconds": 15,
   "fps": 8,
+  "extension": "webp",
+  "baseUrl": "/videos/hero-frames",
   "videoDuration": 46.5,
   "clipStartSeconds": 31.5,
-  "pattern": "/videos/hero-frames/frame-{index}.jpg",
+  "pattern": "/videos/hero-frames/frame-{index}.webp",
   "contentFadeLeadInFrames": 56,
   "endsAtVideoEnd": true
 }

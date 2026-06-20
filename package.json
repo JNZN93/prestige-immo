@@ -9,7 +9,8 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "verify:supabase": "node scripts/verify-supabase.mjs",
-    "extract:hero-frames": "node scripts/extract-hero-frames.mjs"
+    "extract:hero-frames": "node scripts/extract-hero-frames.mjs",
+    "upload:hero-frames": "node scripts/upload-hero-frames.mjs"
   },
   "private": true,
   "dependencies": {
