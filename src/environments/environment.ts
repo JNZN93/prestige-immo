@@ -7,5 +7,9 @@ export const environment = {
 };
 
 export function isSupabaseConfigured(): boolean {
-  return Boolean(environment.supabaseUrl && environment.supabaseAnonKey);
+  return (
+    Boolean(environment.supabaseUrl && environment.supabaseAnonKey) &&
+    !environment.supabaseUrl.includes('YOUR_PROJECT') &&
+    environment.supabaseAnonKey !== 'YOUR_ANON_KEY'
+  );
 }

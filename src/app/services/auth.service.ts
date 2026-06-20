@@ -47,31 +47,41 @@ export class AuthService {
 
   async signIn(email: string, password: string): Promise<string | null> {
     if (!this.supabase.isConfigured) {
-      return 'Supabase ist nicht konfiguriert.';
+      return 'Supabase ist nicht konfiguriert. URL und Anon-Key in environment.ts bzw. Vercel-Umgebungsvariablen prüfen.';
     }
 
-    const { data, error } = await this.supabase.getClient().auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { data, error } = await this.supabase.getClient().auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) {
-      return error.message;
+      if (error) {
+        return error.message;
+      }
+
+      await this.syncProfile(data.user);
+      const profile = this.profileSignal();
+
+      if (!profile) {
+        return 'Profil konnte nicht geladen werden. Bitte supabase/employees-fix.sql im SQL Editor ausführen.';
+      }
+
+      if (!profile.active) {
+        await this.signOut();
+        return 'Ihr Zugang wurde deaktiviert.';
+      }
+
+      return null;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unbekannter Fehler';
+
+      if (/failed to fetch|networkerror|load failed/i.test(message)) {
+        return 'Verbindung zu Supabase fehlgeschlagen. URL/Key prüfen (Production: SUPABASE_URL + SUPABASE_ANON_KEY auf Vercel setzen).';
+      }
+
+      return message;
     }
-
-    await this.syncProfile(data.user);
-    const profile = this.profileSignal();
-
-    if (!profile) {
-      return 'Profil konnte nicht geladen werden. Bitte supabase/employees-fix.sql im SQL Editor ausführen.';
-    }
-
-    if (!profile.active) {
-      await this.signOut();
-      return 'Ihr Zugang wurde deaktiviert.';
-    }
-
-    return null;
   }
 
   async signOut(): Promise<void> {
