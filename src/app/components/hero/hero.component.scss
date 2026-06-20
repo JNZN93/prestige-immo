@@ -13,25 +13,21 @@
     background: #0f141c;
   }
 
-  &__video-wrap {
+  &__media-wrap {
     position: absolute;
     inset: 0;
     z-index: 0;
     background: #0f141c;
   }
 
-  &__video {
+  &__canvas {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
-    object-fit: cover;
-    object-position: center;
     opacity: 0;
     filter: saturate(0.84) contrast(0.96) brightness(1.04);
-    transform: scale(1);
-    transform-origin: center center;
-    will-change: opacity;
+    transition: opacity 0.45s ease;
 
     &--ready {
       opacity: 1;

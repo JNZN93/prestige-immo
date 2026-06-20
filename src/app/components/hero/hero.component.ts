@@ -12,7 +12,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HeroVideoLoaderService } from '../../services/hero-video-loader.service';
+import { HeroFrameLoaderService } from '../../services/hero-frame-loader.service';
 
 @Component({
   selector: 'app-hero',
@@ -23,13 +23,13 @@ import { HeroVideoLoaderService } from '../../services/hero-video-loader.service
 })
 export class HeroComponent implements AfterViewInit, OnDestroy {
   @ViewChild('heroSection') heroSection!: ElementRef<HTMLElement>;
-  @ViewChild('heroVideo') heroVideo!: ElementRef<HTMLVideoElement>;
+  @ViewChild('heroCanvas') heroCanvas!: ElementRef<HTMLCanvasElement>;
 
-  private readonly videoLoader = inject(HeroVideoLoaderService);
+  private readonly frameLoader = inject(HeroFrameLoaderService);
 
   searchType = 'kaufen';
   searchLocation = '';
-  videoReady = false;
+  framesReady = false;
   searchMessage = '';
 
   readonly heroScrollHeight = signal(0);
@@ -37,25 +37,18 @@ export class HeroComponent implements AfterViewInit, OnDestroy {
   readonly contentOffsetY = signal(0);
   readonly readabilityOpacity = signal(0);
 
-  private readonly clipDuration = 19;
-  private readonly contentFadeLeadInClip = 13;
   private readonly scrollTrackViewports = 2;
-  private readonly seekThreshold = 0.08;
-  private readonly minSeekIntervalMs = 80;
-
-  private videoStartTime = 0;
-  private activeClipDuration = 0;
+  private frameCount = 0;
+  private contentFadeLeadInFrames = 41;
   private contentHideOffset = 0;
+  private currentFrameIndex = -1;
+  private currentFrameBlend = -1;
   private scrollRaf = 0;
-  private seekRaf = 0;
-  private isSeeking = false;
-  private pendingTargetTime: number | null = null;
-  private lastAppliedTargetTime = -1;
-  private lastSeekAt = 0;
-  private useStaticVideo = false;
+  private resizeObserver: ResizeObserver | null = null;
 
   private onScroll = () => this.scheduleScrollUpdate();
   private onResize = () => {
+    this.resizeCanvas();
     this.updateHeroScrollHeight();
     this.updateContentHideOffset();
     this.scheduleScrollUpdate();
@@ -68,11 +61,10 @@ export class HeroComponent implements AfterViewInit, OnDestroy {
       return;
     }
 
-    this.useStaticVideo = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.updateHeroScrollHeight();
     this.updateContentHideOffset();
     this.hideHeroContent();
-    void this.initVideo();
+    void this.initFrames();
     window.addEventListener('scroll', this.onScroll, { passive: true });
     window.addEventListener('resize', this.onResize, { passive: true });
     this.scheduleScrollUpdate();
@@ -85,162 +77,56 @@ export class HeroComponent implements AfterViewInit, OnDestroy {
 
     window.removeEventListener('scroll', this.onScroll);
     window.removeEventListener('resize', this.onResize);
+    this.resizeObserver?.disconnect();
 
     if (this.scrollRaf) {
       cancelAnimationFrame(this.scrollRaf);
     }
+  }
 
-    if (this.seekRaf) {
-      cancelAnimationFrame(this.seekRaf);
+  private async initFrames(): Promise<void> {
+    try {
+      const manifest = await this.frameLoader.preload();
+      this.frameCount = manifest.frameCount;
+      this.contentFadeLeadInFrames = manifest.contentFadeLeadInFrames;
+      this.setupCanvasObserver();
+      this.resizeCanvas();
+      this.framesReady = true;
+      this.updateHeroScrollHeight();
+      this.updateSequenceFromScroll(true);
+    } catch {
+      this.frameLoader.complete();
     }
   }
 
-  private isMobileDevice(): boolean {
-    return window.matchMedia('(hover: none) and (pointer: coarse)').matches;
-  }
-
-  private getSeekThreshold(): number {
-    return this.isMobileDevice() ? 0.12 : this.seekThreshold;
-  }
-
-  private getMinSeekIntervalMs(): number {
-    return this.isMobileDevice() ? 120 : this.minSeekIntervalMs;
-  }
-
-  private async initVideo(): Promise<void> {
-    const video = this.heroVideo?.nativeElement;
-    if (!video) {
+  private setupCanvasObserver(): void {
+    const wrap = this.heroCanvas?.nativeElement?.parentElement;
+    if (!wrap || typeof ResizeObserver === 'undefined') {
       return;
     }
 
-    video.muted = true;
-    video.defaultMuted = true;
-    video.playsInline = true;
-    video.setAttribute('webkit-playsinline', '');
-    video.disablePictureInPicture = true;
-    video.controls = false;
-    video.preload = 'auto';
-    video.loop = false;
-    video.pause();
-
-    const videoUrl = await this.videoLoader.preload();
-    video.src = videoUrl;
-
-    this.videoLoader.setPhaseProgress(20);
-    await this.waitForVideoMetadata(video);
-
-    this.videoLoader.setPhaseProgress(55);
-    await this.waitForVideoBuffer(video);
-
-    if (!this.useStaticVideo) {
-      this.videoLoader.setPhaseProgress(80);
-      await this.warmVideoDecoder(video);
-    }
-
-    video.currentTime = this.getClipEndTime();
-    this.lastAppliedTargetTime = video.currentTime;
-    this.videoReady = true;
-    this.updateHeroScrollHeight();
-    this.updateVideoFromScroll();
-    this.videoLoader.complete();
-  }
-
-  private waitForVideoMetadata(video: HTMLVideoElement): Promise<void> {
-    return new Promise((resolve) => {
-      const applyMetadata = () => {
-        const duration = this.getPlayableDuration(video);
-        if (!duration) {
-          return;
-        }
-
-        this.activeClipDuration = Math.min(this.clipDuration, duration);
-        this.videoStartTime = Math.max(0, duration - this.activeClipDuration);
-        resolve();
-      };
-
-      if (video.readyState >= HTMLMediaElement.HAVE_METADATA) {
-        applyMetadata();
-        return;
-      }
-
-      video.addEventListener('loadedmetadata', applyMetadata, { once: true });
-      video.load();
+    this.resizeObserver = new ResizeObserver(() => {
+      this.resizeCanvas();
+      this.drawFrame(this.currentFrameIndex, this.currentFrameBlend, true);
     });
+    this.resizeObserver.observe(wrap);
   }
 
-  private waitForVideoBuffer(video: HTMLVideoElement): Promise<void> {
-    return new Promise((resolve) => {
-      let settled = false;
-
-      const finish = () => {
-        if (settled) {
-          return;
-        }
-        settled = true;
-        video.removeEventListener('progress', check);
-        resolve();
-      };
-
-      const check = () => {
-        if (this.isClipFullyBuffered(video) || video.readyState >= HTMLMediaElement.HAVE_ENOUGH_DATA) {
-          finish();
-        }
-      };
-
-      check();
-      video.addEventListener('progress', check);
-      video.addEventListener('canplaythrough', finish, { once: true });
-      window.setTimeout(finish, 15000);
-    });
-  }
-
-  private isClipFullyBuffered(video: HTMLVideoElement): boolean {
-    const clipEnd = this.getClipEndTime();
-    if (!clipEnd) {
-      return false;
+  private resizeCanvas(): void {
+    const canvas = this.heroCanvas?.nativeElement;
+    const wrap = canvas?.parentElement;
+    if (!canvas || !wrap) {
+      return;
     }
 
-    for (let i = 0; i < video.buffered.length; i++) {
-      if (video.buffered.start(i) <= this.videoStartTime + 0.05 && video.buffered.end(i) >= clipEnd - 0.05) {
-        return true;
-      }
-    }
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const width = wrap.clientWidth;
+    const height = wrap.clientHeight;
 
-    return false;
-  }
-
-  private async warmVideoDecoder(video: HTMLVideoElement): Promise<void> {
-    const clipEnd = this.getClipEndTime();
-    const points = [clipEnd, this.videoStartTime + this.activeClipDuration * 0.5, this.videoStartTime, clipEnd];
-
-    for (const time of points) {
-      await this.seekVideoTo(video, time);
-    }
-  }
-
-  private seekVideoTo(video: HTMLVideoElement, targetTime: number): Promise<void> {
-    return new Promise((resolve) => {
-      if (Math.abs(video.currentTime - targetTime) < this.getSeekThreshold()) {
-        resolve();
-        return;
-      }
-
-      const onSeeked = () => {
-        video.removeEventListener('seeked', onSeeked);
-        resolve();
-      };
-
-      video.addEventListener('seeked', onSeeked);
-      video.currentTime = targetTime;
-    });
-  }
-
-  private getPlayableDuration(video: HTMLVideoElement): number {
-    if (video.seekable.length > 0) {
-      return video.seekable.end(video.seekable.length - 1);
-    }
-
-    return video.duration;
+    canvas.width = Math.round(width * dpr);
+    canvas.height = Math.round(height * dpr);
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
   }
 
   private getViewportHeight(): number {
@@ -269,7 +155,7 @@ export class HeroComponent implements AfterViewInit, OnDestroy {
 
     this.scrollRaf = requestAnimationFrame(() => {
       this.scrollRaf = 0;
-      this.updateVideoFromScroll();
+      this.updateSequenceFromScroll();
     });
   }
 
@@ -289,98 +175,113 @@ export class HeroComponent implements AfterViewInit, OnDestroy {
     return scrolled / scrollable;
   }
 
-  private getClipEndTime(): number {
-    return this.videoStartTime + Math.max(this.activeClipDuration - 0.05, 0);
+  private getFramePosition(progress: number): { index: number; blend: number } {
+    if (this.frameCount <= 1) {
+      return { index: 0, blend: 0 };
+    }
+
+    const exact = (1 - progress) * (this.frameCount - 1);
+    const index = Math.min(Math.floor(exact), this.frameCount - 1);
+    const blend = exact - index;
+
+    return { index, blend };
   }
 
-  private updateVideoFromScroll(): void {
-    const video = this.heroVideo?.nativeElement;
-    if (!video || !this.activeClipDuration) {
+  private updateSequenceFromScroll(force = false): void {
+    if (!this.framesReady || !this.frameCount) {
       this.hideHeroContent();
       return;
     }
 
     const progress = this.getScrollProgress();
-    const clipEnd = this.getClipEndTime();
-    const clipSpan = clipEnd - this.videoStartTime;
-    const targetTime = clipEnd - progress * clipSpan;
+    const { index: frameIndex, blend } = this.getFramePosition(progress);
 
-    if (!this.useStaticVideo) {
-      this.queueVideoSeek(video, targetTime);
+    if (force || frameIndex !== this.currentFrameIndex || blend !== this.currentFrameBlend) {
+      this.drawFrame(frameIndex, blend);
+      this.currentFrameIndex = frameIndex;
+      this.currentFrameBlend = blend;
     }
 
-    this.updateContentReveal(targetTime);
+    this.updateContentReveal(frameIndex, blend);
   }
 
-  private queueVideoSeek(video: HTMLVideoElement, targetTime: number): void {
-    this.pendingTargetTime = targetTime;
-
-    if (this.isSeeking) {
+  private drawFrame(frameIndex: number, blend = 0, force = false): void {
+    if (!force && frameIndex === this.currentFrameIndex && blend === this.currentFrameBlend) {
       return;
     }
 
-    const now = performance.now();
-    const minInterval = this.getMinSeekIntervalMs();
-
-    if (now - this.lastSeekAt < minInterval) {
-      if (!this.seekRaf) {
-        this.seekRaf = requestAnimationFrame(() => {
-          this.seekRaf = 0;
-          this.flushVideoSeek(video);
-        });
-      }
+    const canvas = this.heroCanvas?.nativeElement;
+    const imageA = this.frameLoader.getFrame(frameIndex);
+    if (!canvas || !imageA) {
       return;
     }
 
-    this.flushVideoSeek(video);
+    const imageB =
+      blend > 0 && frameIndex < this.frameCount - 1
+        ? this.frameLoader.getFrame(frameIndex + 1)
+        : null;
+
+    const ctx = canvas.getContext('2d', { alpha: false });
+    if (!ctx) {
+      return;
+    }
+
+    const dpr = canvas.width / canvas.clientWidth;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = '#0f141c';
+    ctx.fillRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+
+    // Opaque base frame; only the next frame is faded in on top (avoids black gaps).
+    this.paintFrame(ctx, imageA);
+
+    if (imageB && blend > 0.001) {
+      this.paintFrame(ctx, imageB, blend);
+    }
   }
 
-  private flushVideoSeek(video: HTMLVideoElement): void {
-    if (this.pendingTargetTime === null || this.isSeeking) {
-      return;
+  private paintFrame(
+    ctx: CanvasRenderingContext2D,
+    image: HTMLImageElement,
+    alpha = 1,
+  ): void {
+    const canvas = this.heroCanvas.nativeElement;
+    const canvasRatio = canvas.clientWidth / canvas.clientHeight;
+    const imageRatio = image.width / image.height;
+    let drawWidth = canvas.clientWidth;
+    let drawHeight = canvas.clientHeight;
+    let offsetX = 0;
+    let offsetY = 0;
+
+    if (imageRatio > canvasRatio) {
+      drawHeight = canvas.clientHeight;
+      drawWidth = drawHeight * imageRatio;
+      offsetX = (canvas.clientWidth - drawWidth) / 2;
+    } else {
+      drawWidth = canvas.clientWidth;
+      drawHeight = drawWidth / imageRatio;
+      offsetY = (canvas.clientHeight - drawHeight) / 2;
     }
 
-    const targetTime = this.pendingTargetTime;
-    const threshold = this.getSeekThreshold();
-
-    if (
-      Math.abs(video.currentTime - targetTime) < threshold &&
-      Math.abs(this.lastAppliedTargetTime - targetTime) < threshold
-    ) {
-      this.pendingTargetTime = null;
-      return;
+    ctx.save();
+    if (alpha < 1) {
+      ctx.globalAlpha = alpha;
     }
-
-    this.isSeeking = true;
-    this.lastAppliedTargetTime = targetTime;
-    this.lastSeekAt = performance.now();
-
-    const onSeeked = () => {
-      video.removeEventListener('seeked', onSeeked);
-      this.isSeeking = false;
-
-      if (this.pendingTargetTime !== null && Math.abs(this.pendingTargetTime - video.currentTime) >= threshold) {
-        this.queueVideoSeek(video, this.pendingTargetTime);
-        return;
-      }
-
-      this.pendingTargetTime = null;
-    };
-
-    video.addEventListener('seeked', onSeeked);
-    video.currentTime = targetTime;
+    ctx.drawImage(image, offsetX, offsetY, drawWidth, drawHeight);
+    ctx.restore();
   }
 
-  private updateContentReveal(clipTime: number): void {
-    const clipOffset = clipTime - this.videoStartTime;
-    const revealEnd = Math.min(this.contentFadeLeadInClip, this.activeClipDuration);
+  private updateContentReveal(frameIndex: number, blend = 0): void {
+    const framesFromStart = frameIndex + blend;
+    const revealEnd = this.contentFadeLeadInFrames;
 
-    if (clipOffset > revealEnd) {
+    if (framesFromStart > revealEnd) {
       this.hideHeroContent();
       return;
     }
 
-    const rawProgress = (revealEnd - clipOffset) / this.contentFadeLeadInClip;
+    const rawProgress = (revealEnd - framesFromStart) / revealEnd;
     const eased = this.easeOutCubic(Math.min(Math.max(rawProgress, 0), 1));
 
     this.contentReveal.set(eased);

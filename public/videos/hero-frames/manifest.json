@@ -1,0 +1,10 @@
+{
+  "frameCount": 120,
+  "clipSeconds": 15,
+  "fps": 8,
+  "videoDuration": 46.5,
+  "clipStartSeconds": 31.5,
+  "pattern": "/videos/hero-frames/frame-{index}.jpg",
+  "contentFadeLeadInFrames": 56,
+  "endsAtVideoEnd": true
+}

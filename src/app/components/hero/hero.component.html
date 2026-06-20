@@ -1,17 +1,7 @@
 <section class="hero" id="hero" #heroSection [style.height.px]="heroScrollHeight() || null">
   <div class="hero__sticky">
-    <div class="hero__video-wrap">
-      <video
-        #heroVideo
-        class="hero__video"
-        [class.hero__video--ready]="videoReady"
-        muted
-        playsinline
-        webkit-playsinline
-        preload="auto"
-        disablepictureinpicture
-        disableremoteplayback
-      ></video>
+    <div class="hero__media-wrap">
+      <canvas #heroCanvas class="hero__canvas" [class.hero__canvas--ready]="framesReady"></canvas>
       <div class="hero__brighten" aria-hidden="true"></div>
       <div class="hero__tone" aria-hidden="true"></div>
       <div class="hero__readability" [style.opacity]="readabilityOpacity()" aria-hidden="true"></div>

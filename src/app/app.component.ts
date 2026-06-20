@@ -3,7 +3,7 @@ import { Component, Inject, OnInit, PLATFORM_ID, inject } from '@angular/core';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { LoadingScreenComponent } from './components/loading-screen/loading-screen.component';
-import { HeroVideoLoaderService } from './services/hero-video-loader.service';
+import { HeroFrameLoaderService } from './services/hero-frame-loader.service';
 
 @Component({
   selector: 'app-root',
@@ -30,7 +30,7 @@ import { HeroVideoLoaderService } from './services/hero-video-loader.service';
   `,
 })
 export class AppComponent implements OnInit {
-  readonly loader = inject(HeroVideoLoaderService);
+  readonly loader = inject(HeroFrameLoaderService);
   private readonly router = inject(Router);
 
   constructor(@Inject(PLATFORM_ID) private readonly platformId: object) {}
